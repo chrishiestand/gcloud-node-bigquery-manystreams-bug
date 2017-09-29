@@ -17,18 +17,21 @@ process.on('uncaughtException', (error) => {
 
 dotenv.config()
 
-// HEY YOU! Set these 3 variables!
-let {totalStreams, keyFilePath, projectId, queryLatencyMs, bQTableBaseName} = process.env
+let {
+    bQDatasetName,
+    bQTableBaseName,
+    keyFilePath,
+    projectId,
+    queryLatencyMs,
+    streamLength,
+    totalStreams,
+} = process.env
 
-totalStreams = parseInt(totalStreams)
+queryLatencyMs = parseInt(queryLatencyMs)
+streamLength   = parseInt(streamLength)
+totalStreams   = parseInt(totalStreams)
 
-if (queryLatencyMs) {
-    queryLatencyMs = parseInt(queryLatencyMs)
-} else {
-    queryLatencyMs = 15000
-}
-
-if (!totalStreams || !keyFilePath || !projectId || !bQTableBaseName) {
+if (!totalStreams || !keyFilePath || !projectId || !bQTableBaseName || !bQDatasetName || !streamLength) {
     console.error('Please setup your .env file. Use .env.example as an example')
     process.exit(1)
 }
@@ -37,9 +40,7 @@ if (!path.isAbsolute(keyFilePath)) {
     keyFilePath = path.join(__dirname, '..', keyFilePath)
 }
 
-const streamLength = 150
 const gbqClient = gbq({projectId, keyFilename: keyFilePath})
-const bQDatasetName = 'stream_bug_test'
 
 let bQTableName = ''
 
@@ -107,7 +108,7 @@ function createReadStream() {
   return new Readable({
 
     objectMode   : true,
-    highWaterMark: 150,
+    highWaterMark: streamLength,
 
     read(_size) {
       const thisStream = this
