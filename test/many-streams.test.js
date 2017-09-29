@@ -24,6 +24,7 @@ let {
     keyFilePath,
     projectId,
     queryLatencyMs,
+    randomizeData,
     streamLength,
     totalStreams,
 } = process.env
@@ -39,6 +40,12 @@ if (!totalStreams || !keyFilePath || !projectId || !bQTableBaseName || !bQDatase
 
 if (!path.isAbsolute(keyFilePath)) {
     keyFilePath = path.join(__dirname, '..', keyFilePath)
+}
+
+if (!randomizeData || randomizeData === 'false') {
+    randomizeData = false
+} else {
+    randomizeData = true
 }
 
 const chancejs = new chance()
@@ -129,14 +136,21 @@ function createReadStream() {
     highWaterMark: streamLength,
 
     read(_size) {
+
       const thisStream = this
+
       ramda.range(0, streamLength).map(() => {
 
-        const obj = ramda.clone(testData)
-        randomizeM(obj)
-        const str = stringifyObject(obj)
-        thisStream.push(str)
+        let obj = testData
 
+        if (randomizeData) {
+            obj = ramda.clone(testData)
+            randomizeM(obj)
+        }
+
+        const str = stringifyObject(obj)
+
+        thisStream.push(str)
       })
       thisStream.push(null)
     },
