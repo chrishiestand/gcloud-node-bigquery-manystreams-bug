@@ -2,6 +2,7 @@ import path from 'path'
 import {Readable} from 'stream'
 
 import bluebird from 'bluebird'
+import chance from 'chance'
 import dotenv from 'dotenv'
 import gbq from '@google-cloud/bigquery'
 import ramda from 'ramda'
@@ -40,6 +41,7 @@ if (!path.isAbsolute(keyFilePath)) {
     keyFilePath = path.join(__dirname, '..', keyFilePath)
 }
 
+const chancejs = new chance()
 const gbqClient = gbq({projectId, keyFilename: keyFilePath})
 
 let bQTableName = ''
@@ -74,7 +76,23 @@ const testData = {
   unixtimeStart  : 1506384237.974667
 }
 
-const testDataStr = JSON.stringify(testData) + '\n'
+function randomizeM(obj) {
+    obj.bucket = chancejs.word({length: 45})
+    obj.clientIp = chancejs.ip()
+    obj.clientLatitude = chancejs.latitude()
+    obj.clientLongitude = chancejs.longitude()
+    obj.filePath = chancejs.character({pool: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_./'})
+    obj.hitMiss = chancejs.pick(['HIT','MISS'])
+    obj.numBytes = getRandomInt(0,999999)
+    obj.originalHost = chancejs.domain()
+    obj.responseCode = chancejs.pick(['200','404', '301'])
+    obj.timeDurationMs = getRandomInt(0,999000)
+    obj.unixtimeStart = chancejs.hammertime() / 1000
+}
+
+function stringifyObject(obj) {
+    return JSON.stringify(testData) + '\n'
+}
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min
@@ -113,7 +131,12 @@ function createReadStream() {
     read(_size) {
       const thisStream = this
       ramda.range(0, streamLength).map(() => {
-        thisStream.push(testDataStr)
+
+        const obj = ramda.clone(testData)
+        randomizeM(obj)
+        const str = stringifyObject(obj)
+        thisStream.push(str)
+
       })
       thisStream.push(null)
     },
