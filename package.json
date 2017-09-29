@@ -1,0 +1,28 @@
+{
+  "name": "gcloud-node-bigquery-manystreams-bug",
+  "version": "0.0.1",
+  "description": "to reproduce bug with google cloud node bigquery - silently drops streams when many streams are used. Edit",
+  "main": "index.js",
+  "scripts": {
+    "test": "ava -v"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chrishiestand/gcloud-node-bigquery-manystreams-bug.git"
+  },
+  "author": "Chris Hiestand <chrishiestand@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/chrishiestand/gcloud-node-bigquery-manystreams-bug/issues"
+  },
+  "homepage": "https://github.com/chrishiestand/gcloud-node-bigquery-manystreams-bug#readme",
+  "dependencies": {
+    "@google-cloud/bigquery": "^0.9.6",
+    "bluebird": "^3.5.0",
+    "dotenv": "^4.0.0",
+    "ramda": "^0.24.1"
+  },
+  "devDependencies": {
+    "ava": "^0.22.0"
+  }
+}
