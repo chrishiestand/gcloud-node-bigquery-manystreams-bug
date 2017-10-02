@@ -25,15 +25,17 @@ let {
     projectId,
     queryLatencyMs,
     randomizeData,
+    streamConcurrency,
     streamLength,
     totalStreams,
 } = process.env
 
-queryLatencyMs = parseInt(queryLatencyMs)
-streamLength   = parseInt(streamLength)
-totalStreams   = parseInt(totalStreams)
+queryLatencyMs    = parseInt(queryLatencyMs)
+streamConcurrency = parseInt(streamConcurrency)
+streamLength      = parseInt(streamLength)
+totalStreams      = parseInt(totalStreams)
 
-if (!totalStreams || !keyFilePath || !projectId || !bQTableBaseName || !bQDatasetName || !streamLength) {
+if (!totalStreams || !keyFilePath || !projectId || !bQTableBaseName || !bQDatasetName || !streamLength || !streamConcurrency) {
     console.error('Please setup your .env file. Use .env.example as an example')
     process.exit(1)
 }
@@ -181,7 +183,9 @@ test.beforeEach('setup table', async t => {
 
 test('run and verify result', async (t) => {
 
-  const promises = ramda.range(0, totalStreams).map(() => {
+  const sizedArray = ramda.range(0, totalStreams)
+
+  await bluebird.resolve(sizedArray).map((_streamNum) => {
 
     const readStream  = createReadStream()
     const writeStream = t.context.table.createWriteStream({
@@ -189,9 +193,9 @@ test('run and verify result', async (t) => {
     })
 
     return streamsToGcloudPromiseP(readStream, writeStream)
-  })
-
-  await Promise.all(promises)
+  },
+    {concurrency: streamConcurrency}
+  )
 
   console.log(`writes complete, waiting ${queryLatencyMs / 1000}s for data to process...`)
 
