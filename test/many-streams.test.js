@@ -131,40 +131,39 @@ async function makeTableP({gbqClient, gbqDatasetName, gbqTableName}) {
 }
 
 function createReadStream() {
+  var results = Array(streamLength).fill(stringifyObject(testData))
 
   return new Readable({
-
-    objectMode   : true,
-    highWaterMark: streamLength,
-
     read(_size) {
-
       const thisStream = this
+      this.push(results.pop())
 
-      ramda.range(0, streamLength).map(() => {
-
-        let obj = testData
-
-        if (randomizeData) {
-            obj = ramda.clone(testData)
-            randomizeM(obj)
-        }
-
-        const str = stringifyObject(obj)
-
-        thisStream.push(str)
-      })
-      thisStream.push(null)
+      if (!results.length) {
+        this.push(null)
+      }
     },
   })
 }
 
+var allOutputRows = 0
 function streamsToGcloudPromiseP(readStream, writeStream) {
 
   return new Promise((resolve, reject) => {
 
     writeStream.on('error', reject)
-    writeStream.on('complete', resolve)
+    writeStream.on('complete', job => {
+      job.on('error', reject)
+      job.on('complete', job => {
+        try {
+          allOutputRows += parseInt(job.statistics.load.outputRows, 10)
+        } catch (e) {
+          console.log(e)
+          console.log(job)
+        }
+        console.log(job.status.state, job.statistics.load.outputRows)
+        resolve()
+      })
+    })
 
     readStream.pipe(writeStream)
   })
@@ -197,10 +196,12 @@ test('run and verify result', async (t) => {
     {concurrency: streamConcurrency}
   )
 
-  console.log(`writes complete, waiting ${queryLatencyMs / 1000}s for data to process...`)
+  console.log('All output rows', allOutputRows)
+
+  // console.log(`writes complete, waiting ${queryLatencyMs / 1000}s for data to process...`)
 
   // give BQ time to process the data
-  await bluebird.delay(queryLatencyMs)
+  // await bluebird.delay(queryLatencyMs)
 
   const queryString = `SELECT COUNT(bucket) FROM [${projectId}:${bQDatasetName}.${bQTableName}]`
 
